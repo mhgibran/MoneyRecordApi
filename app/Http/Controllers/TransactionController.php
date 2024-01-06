@@ -12,9 +12,14 @@ use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $data = Transaction::all();
+        $data = Transaction::query()
+                ->when($request->type, function($q) use ($request) {
+                    $q->where('type',$request->type);
+                })
+                ->get();
+        
         return ResponseFormatter::success($data);
     }
 
