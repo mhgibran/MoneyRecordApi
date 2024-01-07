@@ -6,6 +6,7 @@ use App\Helper\ResponseFormatter;
 use App\Models\Card;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -15,8 +16,23 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $data = Transaction::query()
+                ->when($request->keyword, function($q) use ($request) {
+                    $q->where('trx_number','like','%'.$request->keyword.'%')
+                    ->orWhere('description','like','%'.$request->keyword.'%');
+                })
                 ->when($request->type, function($q) use ($request) {
                     $q->where('type',$request->type);
+                })
+                ->when($request->start && $request->end, function($q) use ($request) {
+                    $start = Carbon::parse($request->start)->format('Y-m-d');
+                    $end = Carbon::parse($request->end)->format('Y-m-d');
+                    $q->whereBetween('trx_date',[$start,$end]);
+                })
+                ->when($request->min && $request->max, function($q) use ($request) {
+                    $q->whereBetween('amount',[$request->min,$request->max]);
+                })
+                ->when($request->category, function($q) use ($request) {
+                    $q->where('transaction_category_id',$request->category);
                 })
                 ->get();
         
